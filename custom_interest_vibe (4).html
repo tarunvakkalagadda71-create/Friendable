@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Friendable — Prototype</title>
+<script>
+// Add your Google Maps API key here
+// Get one free at: https://console.cloud.google.com
+// Steps: Create project → Enable "Maps JavaScript API" → Create API Key
+window.GOOGLE_MAPS_API_KEY = ''; // Replace with your API key
+window.initMapWithoutKey = true;
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+body{background:#f0ece4;transition:background .2s;}
+:root{--bg1:#fff;--bg2:#f5f4f0;--bg3:#eceae4;--tx1:#111;--tx2:#666;--tx3:#aaa;--bd1:rgba(0,0,0,0.28);--bd2:rgba(0,0,0,0.18);--bd3:rgba(0,0,0,0.09);--acc:#BA4E2C;--acc-lt:#FAECE7;--acc-dk:#712B13;--r-md:8px;--r-lg:12px;--fs-base:14px;--fs-sm:12px;--fs-xs:11px;--fs-lg:17px;--fs-xl:22px;--fs-xxl:26px;}
+@media(prefers-color-scheme:dark){body{background:#0e0e10;}:root{--bg1:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--tx1:#f2f2f7;--tx2:#aeaeb2;--tx3:#636366;--bd1:rgba(255,255,255,0.28);--bd2:rgba(255,255,255,0.18);--bd3:rgba(255,255,255,0.09);}}
+body.hc{background:#000;}
+body.hc .phone-frame{--bg1:#000;--bg2:#111;--bg3:#1a1a1a;--tx1:#fff;--tx2:#ffe066;--tx3:#ffd700;--bd1:#fff;--bd2:rgba(255,255,255,0.7);--bd3:rgba(255,255,255,0.35);--acc:#ff6b35;--acc-lt:#2a1000;--acc-dk:#ffb38a;}
+body.hc .phone-frame .btn-pri{background:#ff6b35!important;color:#000!important;font-weight:800;}
+body.hc .phone-frame .btn-sec{border-color:#ff6b35!important;color:#ff6b35!important;}
+body.hc .phone-frame .big-toggle.on{background:#ff6b35!important;border-color:#ff6b35!important;}
+body.hc .phone-frame .chip.sel{background:#ff6b35!important;color:#000!important;border-color:#ff6b35!important;}
+body.hc .phone-frame .fchip.afc{background:#2a1000!important;color:#ff6b35!important;border-color:#ff6b35!important;}
+body.hc .phone-frame .mrow.mine .bbl{background:#ff6b35!important;color:#000!important;}
+body.bigtxt .phone-frame{--fs-base:16px;--fs-sm:14px;--fs-xs:13px;--fs-lg:20px;--fs-xl:26px;--fs-xxl:30px;}
+.outer{display:flex;flex-direction:column;align-items:center;padding:1rem 0.5rem 3rem;gap:.75rem;}
+.a11y-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;padding:10px 16px;background:var(--bg1);border-radius:24px;border:1px solid var(--bd2);width:100%;max-width:460px;}
+.a11y-ttl{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.6px;margin-right:2px;}
+.a11y-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--bd2);background:var(--bg2);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;}
+.a11y-btn.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+.sz-pill{padding:5px 10px;border-radius:14px;border:1px solid var(--bd2);background:var(--bg2);color:var(--tx3);font-size:11px;cursor:pointer;}
+.sz-pill.active-sz{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;}
+.nav-wrap{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:500px;width:100%;}
+.nav-btn{font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--bd2);background:var(--bg2);color:var(--tx2);cursor:pointer;}
+.nav-btn.active-nav{background:var(--acc);color:#fff;border-color:var(--acc);}
+.phone-frame{width:390px;min-height:780px;border-radius:44px;border:2.5px solid var(--bd1);background:var(--bg1);overflow:hidden;position:relative;box-shadow:0 0 0 7px var(--bg2);transition:width .3s,min-height .3s,border-radius .3s;font-size:var(--fs-base);color:var(--tx1);}
+.phone-frame.sz-se{width:375px;min-height:720px;border-radius:38px;}
+.phone-frame.sz-pro{width:430px;min-height:840px;border-radius:48px;}
+@media(max-width:430px){.phone-frame,.phone-frame.sz-se,.phone-frame.sz-pro{width:calc(100vw - 12px)!important;border-radius:24px!important;min-height:unset!important;}}
+@media(max-width:340px){.a11y-bar{gap:5px;padding:8px 10px;}.a11y-btn{padding:5px 10px;font-size:11px;}}
+.screen{display:none;flex-direction:column;min-height:inherit;position:relative;overflow-y:auto;max-height:inherit;}
+.screen.active{display:flex;}
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:12px 22px 0;font-size:var(--fs-xs);font-weight:600;color:var(--tx2);flex-shrink:0;}
+.btn-pri{width:100%;padding:15px;border-radius:30px;border:none;background:var(--acc);color:#fff;font-size:var(--fs-base);font-weight:700;cursor:pointer;}
+.btn-sec{width:100%;padding:14px;border-radius:30px;border:2px solid var(--acc);background:transparent;color:var(--acc);font-size:var(--fs-base);font-weight:700;cursor:pointer;}
+.back-btn{font-size:22px;cursor:pointer;color:var(--tx2);background:none;border:none;padding:4px;margin-bottom:8px;}
+.pbar{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:4px;}
+.pfill{height:100%;background:var(--acc);border-radius:2px;}
+.slbl{font-size:var(--fs-xs);color:var(--tx3);margin-bottom:20px;}
+.htitle{font-size:var(--fs-xxl);font-weight:700;color:var(--tx1);letter-spacing:-.4px;margin-bottom:6px;}
+.hsub{font-size:var(--fs-sm);color:var(--tx2);margin-bottom:20px;line-height:1.55;}
+.flbl{font-size:var(--fs-xs);font-weight:700;color:var(--tx2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.tinput{width:100%;padding:12px 14px;border-radius:var(--r-md);border:1.5px solid var(--bd2);background:var(--bg2);color:var(--tx1);font-size:var(--fs-base);margin-bottom:16px;font-family:inherit;}
+.tinput:focus{outline:none;border-color:var(--acc);}
+.cgrp{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.chip{padding:8px 14px;border-radius:20px;border:1.5px solid var(--bd2);background:var(--bg2);color:var(--tx1);font-size:var(--fs-sm);cursor:pointer;user-select:none;}
+.chip.sel{background:var(--acc);border-color:var(--acc);color:#fff;}
+.ubox{border:2px dashed var(--bd2);border-radius:var(--r-lg);padding:22px;text-align:center;cursor:pointer;margin-bottom:16px;}
+.ctxcard{margin:0 20px 14px;padding:12px 14px;border-radius:var(--r-lg);background:var(--bg2);border:1px solid var(--bd3);display:flex;gap:12px;align-items:center;}
+.togsec{margin:0 20px;background:var(--bg2);border-radius:24px;padding:22px 18px;display:flex;flex-direction:column;align-items:center;gap:14px;border:1px solid var(--bd3);}
+.big-toggle{width:88px;height:88px;border-radius:50%;border:4px solid var(--bd2);background:var(--bg1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:30px;position:relative;}
+.big-toggle.on{background:var(--acc);border-color:var(--acc);}
+.tpulse{position:absolute;width:100%;height:100%;border-radius:50%;background:rgba(186,78,44,.25);animation:tp 2s ease-out infinite;pointer-events:none;display:none;}
+.big-toggle.on .tpulse{display:block;}
+@keyframes tp{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.7);opacity:0}}
+.frow{margin:12px 20px 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin;scrollbar-color:var(--acc) var(--bg3);}
+.frow::-webkit-scrollbar{height:4px;}
+.frow::-webkit-scrollbar-track{background:var(--bg3);border-radius:2px;}
+.frow::-webkit-scrollbar-thumb{background:var(--acc);border-radius:2px;}
+.fchip{flex-shrink:0;padding:6px 12px;border-radius:16px;border:1px solid var(--bd2);background:var(--bg1);color:var(--tx2);font-size:var(--fs-xs);cursor:pointer;white-space:nowrap;}
+.fchip.afc{background:var(--acc-lt);border-color:rgba(186,78,44,.4);color:var(--acc);font-weight:600;}
+.match-ov{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:100;align-items:flex-end;border-radius:44px;overflow:hidden;}
+.match-ov.show{display:flex;}
+.msheet{background:var(--bg1);width:100%;border-radius:28px 28px 0 0;padding:20px;animation:sup .35s ease;}
+@keyframes sup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mhandle{width:36px;height:4px;background:var(--bd2);border-radius:2px;margin:0 auto 16px;}
+.mtag{padding:4px 10px;border-radius:12px;background:var(--acc-lt);color:var(--acc);font-size:var(--fs-xs);font-weight:600;}
+.chatarea{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;max-height:360px;}
+.mrow{display:flex;gap:8px;align-items:flex-end;}
+.mrow.mine{flex-direction:row-reverse;}
+.bbl{max-width:72%;padding:10px 14px;border-radius:18px;font-size:var(--fs-sm);line-height:1.45;}
+.mrow.theirs .bbl{background:var(--bg2);color:var(--tx1);border-bottom-left-radius:4px;}
+.mrow.mine .bbl{background:var(--acc);color:#fff;border-bottom-right-radius:4px;}
+.mtime{font-size:10px;color:var(--tx3);margin-bottom:2px;}
+.ichip{flex-shrink:0;padding:7px 12px;border-radius:16px;border:1px solid var(--bd2);background:var(--bg2);color:var(--tx2);font-size:var(--fs-xs);cursor:pointer;white-space:nowrap;}
+.tbadge{background:var(--acc-lt);color:var(--acc);font-size:var(--fs-sm);font-weight:700;padding:6px 12px;border-radius:16px;font-variant-numeric:tabular-nums;}
+.tbadge.urg{background:#FCEBEB;color:#A32D2D;animation:bl 1s infinite;}
+@keyframes bl{50%{opacity:.6}}
+.ritem{padding:13px 16px;border-radius:var(--r-lg);border:1.5px solid var(--bd2);cursor:pointer;font-size:var(--fs-sm);color:var(--tx1);display:flex;align-items:center;gap:10px;margin-bottom:10px;transition:all .15s;}
+.ritem:hover,.ritem.sel{border-color:#E24B4A;background:#FCEBEB;color:#A32D2D;}
+.mapctrl{width:36px;height:36px;border-radius:10px;background:var(--bg1);border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;font-weight:700;color:var(--tx1);user-select:none;}
+.ppop{position:absolute;z-index:25;background:var(--bg1);border-radius:16px;border:1px solid var(--bd2);padding:14px;width:192px;}
+.ppop.hidden{display:none;}
+.parr{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid var(--bd2);}
+.parr::after{content:'';position:absolute;bottom:1px;left:-7px;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid var(--bg1);}
+.sharebar{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border-radius:12px;padding:10px 14px;margin-bottom:10px;}
+.tsw{width:42px;height:24px;border-radius:12px;background:var(--acc);position:relative;cursor:pointer;flex-shrink:0;}
+.tsw.off{background:var(--bd2);}
+.tknob{position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;}
+.tsw.off .tknob{left:3px;}
+.tsw .tknob{left:21px;}
+.lpill{flex-shrink:0;display:flex;align-items:center;gap:5px;background:var(--bg1);border:1px solid var(--bd2);border-radius:16px;padding:5px 10px;font-size:var(--fs-xs);color:var(--tx2);cursor:pointer;}
+.lpill.on{border-color:var(--acc);color:var(--acc);background:var(--acc-lt);}
+.sectitle{font-size:var(--fs-xs);font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.leg-scroll::-webkit-scrollbar{height:4px;}
+.leg-scroll::-webkit-scrollbar-track{background:var(--bg3);border-radius:2px;}
+.leg-scroll::-webkit-scrollbar-thumb{background:var(--acc);border-radius:2px;}
+.kbd-wrap{background:var(--bg3);border-top:1px solid var(--bd2);padding:6px 4px 10px;display:none;}
+.kbd-wrap.show{display:block;}
+.kbd-row{display:flex;gap:4px;justify-content:center;margin-bottom:4px;}
+.kbd-key{flex:1;max-width:34px;height:42px;border-radius:6px;border:none;background:var(--bg1);color:var(--tx1);font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;border-bottom:2px solid var(--bd2);transition:transform .08s,background .08s;user-select:none;box-shadow:0 1px 0 var(--bd2);}
+.kbd-key:active{transform:scale(.93);background:var(--bg2);}
+.kbd-key.wide{max-width:52px;font-size:11px;background:var(--bg2);}
+.kbd-key.space{flex:5;max-width:none;font-size:12px;color:var(--tx3);}
+.kbd-key.send-k{max-width:52px;background:var(--acc);color:#fff;border-bottom:2px solid rgba(0,0,0,.2);font-size:11px;font-weight:700;}
+.kbd-toggle{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--bd2);background:var(--bg2);color:var(--tx2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.setlbl{font-size:var(--fs-sm);font-weight:600;color:var(--tx1);}
+.setsub{font-size:var(--fs-xs);color:var(--tx2);margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="outer">
+
+<div class="a11y-bar" role="toolbar" aria-label="Accessibility controls">
+  <span class="a11y-ttl">Accessibility</span>
+  <button class="a11y-btn" id="hcBtn" onclick="toggleHC()" aria-pressed="false">⬛ Contrast</button>
+  <button class="a11y-btn" id="btBtn" onclick="toggleBT()" aria-pressed="false">Aa Text</button>
+  <div style="display:flex;gap:4px;" role="group" aria-label="Phone size">
+    <button class="sz-pill" onclick="setSize('se')">SE</button>
+    <button class="sz-pill active-sz" onclick="setSize('14')">14</button>
+    <button class="sz-pill" onclick="setSize('pro')">Max</button>
+  </div>
+</div>
+
+<div class="nav-wrap">
+  <button class="nav-btn active-nav" onclick="go('splash')">Welcome</button>
+  <button class="nav-btn" onclick="go('ob1')">Setup 1</button>
+  <button class="nav-btn" onclick="go('ob2')">Setup 2</button>
+  <button class="nav-btn" onclick="go('main')">Connect</button>
+  <button class="nav-btn" onclick="go('map')">Map</button>
+  <button class="nav-btn" onclick="showMatch()">Match!</button>
+  <button class="nav-btn" onclick="go('chat')">Chat</button>
+  <button class="nav-btn" onclick="go('a11y')">⚙️ Access</button>
+  <button class="nav-btn" onclick="go('expired')">Expired</button>
+  <button class="nav-btn" onclick="go('report')">Report</button>
+</div>
+
+<div class="phone-frame" id="phoneFrame">
+
+<!-- SPLASH -->
+<style>
+@keyframes logoFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+@keyframes fadeUpA{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.splash-bg{flex:1;background:#0D1B2A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:2.5rem 2rem;position:relative;overflow:hidden;}
+.splash-logo{font-size:60px;line-height:1;animation:logoFloat 3.8s ease-in-out infinite;position:relative;z-index:2;}
+.splash-title{font-size:40px;font-weight:800;color:#fff;letter-spacing:-1.5px;text-align:center;line-height:1.1;position:relative;z-index:2;animation:fadeUpA .6s ease both;}
+.splash-tag{font-size:var(--fs-sm);color:rgba(255,255,255,.5);text-align:center;line-height:1.7;max-width:210px;position:relative;z-index:2;animation:fadeUpA .85s ease both;}
+</style>
+<div class="screen active" id="screen-splash">
+  <div class="sbar" style="background:#0D1B2A;color:rgba(255,255,255,.45);position:relative;z-index:3;"><span>9:41</span><span>●●●</span></div>
+  <div class="splash-bg">
+    <canvas id="splashCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;"></canvas>
+    <div class="splash-logo">🤝</div>
+    <div class="splash-title">Friendable</div>
+    <div class="splash-tag">Real people. Real places. Spontaneous moments that matter.</div>
+  </div>
+  <div style="padding:1.75rem 2rem 2.5rem;display:flex;flex-direction:column;gap:10px;background:var(--bg1);">
+    <button class="btn-pri" onclick="go('ob1')">Get Started</button>
+    <button class="btn-sec" onclick="go('main')">I already have an account</button>
+    <button onclick="go('a11y')" style="width:100%;padding:13px;border-radius:30px;border:1.5px solid var(--bd2);background:transparent;color:var(--tx2);font-size:var(--fs-base);font-weight:600;cursor:pointer;">⚙️ Accessibility Settings</button>
+    <p style="font-size:var(--fs-xs);color:var(--tx3);text-align:center;">By continuing you agree to our Terms &amp; Safety Policy</p>
+  </div>
+</div>
+
+<!-- ONBOARD 1 -->
+<div class="screen" id="screen-ob1">
+  <div class="sbar"><span>9:41</span><span>●●●</span></div>
+  <div style="padding:16px 20px 0;">
+    <button class="back-btn" onclick="go('splash')">←</button>
+    <div class="pbar"><div class="pfill" style="width:33%"></div></div>
+    <div class="slbl">Step 1 of 3 — Identity &amp; Profile</div>
+  </div>
+  <div style="padding:0 20px;flex:1;">
+    <div class="htitle">Who are you?</div>
+    <div class="hsub">Your preferred name is only shown after a match. Identity is verified for safety.</div>
+    <div class="flbl">Preferred name</div>
+    <input class="tinput" type="text" placeholder="e.g. Alex" aria-label="Preferred name"/>
+    <div class="flbl">Verify your identity</div>
+    <div class="ubox" onclick="doVerify(this)">
+      <div id="vi1" style="font-size:28px;margin-bottom:8px;">🪪</div>
+      <div id="vt1" style="font-size:var(--fs-sm);color:var(--tx2);">Upload Passport or Driver's Licence</div>
+      <div id="vs1" style="font-size:var(--fs-xs);color:var(--tx3);margin-top:4px;">Age &amp; gender only — not stored</div>
+    </div>
+    <div class="flbl">Live selfie</div>
+    <div class="ubox" onclick="doSelfie(this)">
+      <div id="vi2" style="font-size:28px;margin-bottom:8px;">📷</div>
+      <div id="vt2" style="font-size:var(--fs-sm);color:var(--tx2);">Take a live selfie for photo verification</div>
+      <div id="vs2" style="font-size:var(--fs-xs);color:var(--tx3);margin-top:4px;">Identity matching only</div>
+    </div>
+  </div>
+  <div style="padding:16px 20px 32px;"><button class="btn-pri" onclick="go('ob2')">Continue →</button></div>
+</div>
+
+<!-- ONBOARD 2 -->
+<div class="screen" id="screen-ob2">
+  <div class="sbar"><span>9:41</span><span>●●●</span></div>
+  <div style="padding:16px 20px 0;">
+    <button class="back-btn" onclick="go('ob1')">←</button>
+    <div class="pbar"><div class="pfill" style="width:66%"></div></div>
+    <div class="slbl">Step 2 of 3 — Interests &amp; Vibe</div>
+  </div>
+  <div style="padding:0 20px;flex:1;">
+    <div class="htitle">What are you into?</div>
+    <div class="hsub">Pick at least 2. You'll only match with people sharing at least one interest.</div>
+    <div class="flbl">Interests &amp; hobbies</div>
+    <div class="cgrp" id="interestChips">
+      <div class="chip" onclick="this.classList.toggle('sel')">☕ Coffee</div>
+      <div class="chip sel" onclick="this.classList.toggle('sel')">🎮 Gaming</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🥾 Hiking</div>
+      <div class="chip sel" onclick="this.classList.toggle('sel')">📚 Reading</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🎨 Art</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🏃 Sport</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🎵 Music</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🍜 Foodie</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <input id="customInterest" class="tinput" type="text" placeholder="Add your own..." style="flex:1;margin:0;padding:9px 13px;" maxlength="30" aria-label="Add custom interest" onkeydown="if(event.key==='Enter')addCustomChip('interest')"/>
+      <button onclick="addCustomChip('interest')" style="padding:9px 16px;border-radius:var(--r-md);border:none;background:var(--acc);color:#fff;font-size:var(--fs-sm);font-weight:700;cursor:pointer;white-space:nowrap;">+ Add</button>
+    </div>
+    <div class="flbl">Your vibe</div>
+    <div class="cgrp" id="vibeChips">
+      <div class="chip sel" onclick="this.classList.toggle('sel')">😌 Quiet &amp; chill</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🗣️ Social &amp; loud</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">⚡ Spontaneous</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🧠 Intellectual</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <input id="customVibe" class="tinput" type="text" placeholder="Add your own..." style="flex:1;margin:0;padding:9px 13px;" maxlength="30" aria-label="Add custom vibe" onkeydown="if(event.key==='Enter')addCustomChip('vibe')"/>
+      <button onclick="addCustomChip('vibe')" style="padding:9px 16px;border-radius:var(--r-md);border:none;background:var(--acc);color:#fff;font-size:var(--fs-sm);font-weight:700;cursor:pointer;white-space:nowrap;">+ Add</button>
+    </div>
+    <div class="flbl">Mobility preferences (optional)</div>
+    <div class="cgrp">
+      <div class="chip" onclick="this.classList.toggle('sel')">♿ Accessible venues only</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🚌 Public transport nearby</div>
+    </div>
+    <div class="flbl">Field of study / work (optional)</div>
+    <input class="tinput" type="text" placeholder="e.g. Computer Science, UNSW" aria-label="Field of study"/>
+  </div>
+  <div style="padding:16px 20px 32px;"><button class="btn-pri" onclick="go('main')">Finish Setup →</button></div>
+</div>
+
+<!-- MAIN CONNECT -->
+<div class="screen" id="screen-main">
+  <div class="sbar"><span>9:41</span><span>●●●</span></div>
+  <div style="padding:14px 20px 10px;display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div style="font-size:var(--fs-xl);font-weight:700;color:var(--tx1);">Hey Alex 👋</div>
+      <div style="font-size:var(--fs-sm);color:var(--tx2);">Ready to connect?</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="go('a11y')" style="width:36px;height:36px;border-radius:50%;background:var(--bg2);border:1.5px solid var(--bd2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Accessibility settings">⚙️</button>
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--acc);color:#fff;font-weight:700;font-size:var(--fs-sm);display:flex;align-items:center;justify-content:center;">AJ</div>
+    </div>
+  </div>
+  <div class="ctxcard">
+    <span style="font-size:22px;">☀️</span>
+    <div style="font-size:var(--fs-sm);color:var(--tx2);line-height:1.45;"><span style="font-weight:700;color:var(--tx1);">Monday, 9am · UNSW Campus</span><br>Great morning for coffee or a study session</div>
+  </div>
+  <div class="frow">
+    <div class="fchip afc">📍 500m</div>
+    <div class="fchip afc">🎮 Gaming</div>
+    <div class="fchip" onclick="this.classList.toggle('afc')">☕ Coffee</div>
+    <div class="fchip" onclick="this.classList.toggle('afc')">🎓 UNSW</div>
+    <div class="fchip" onclick="this.classList.toggle('afc')">Age 18–25</div>
+  </div>
+  <div style="height:14px;"></div>
+  <div class="togsec">
+    <div style="font-size:var(--fs-lg);font-weight:700;color:var(--tx1);" id="tLabel">I want to connect</div>
+    <div class="big-toggle" id="bigTog" onclick="toggleConnect()" role="switch" aria-checked="false">
+      <div class="tpulse"></div>
+      <span id="tIcon" style="font-size:28px;">⚡</span>
+    </div>
+    <div style="font-size:var(--fs-sm);color:var(--tx2);text-align:center;" id="tSub">Tap to start looking for<br>someone nearby to hang out with</div>
+    <div id="lookTimer" style="display:none;font-size:var(--fs-sm);color:var(--acc);font-weight:700;" aria-live="polite">Looking... 28:47 remaining</div>
+  </div>
+  <div style="margin:12px 20px 0;font-size:var(--fs-sm);color:var(--tx2);">
+    <span style="font-weight:700;color:var(--acc);" id="nearbyN">7</span> people nearby
+  </div>
+  <button onclick="go('map')" style="margin:10px 20px 0;padding:13px 16px;border-radius:28px;border:2px solid var(--acc);background:transparent;color:var(--acc);font-size:var(--fs-base);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" aria-label="See who is nearby on the map">
+    🗺️ See who's nearby on the map
+  </button>
+  <div style="margin:14px 20px 0;">
+    <div class="sectitle">Suggested for now</div>
+    <div class="cgrp">
+      <div class="chip sel">☕ Grab coffee</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🎮 Game session</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">🚶 Take a walk</div>
+      <div class="chip" onclick="this.classList.toggle('sel')">📚 Study together</div>
+    </div>
+  </div>
+  <div class="match-ov" id="matchOv">
+    <div class="msheet">
+      <div class="mhandle"></div>
+      <div style="font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:12px;">✦ Match Found</div>
+      <div style="background:var(--bg2);border-radius:var(--r-lg);padding:16px;margin-bottom:14px;">
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">
+          <div style="width:52px;height:52px;border-radius:50%;background:#FAC775;color:#633806;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">MK</div>
+          <div>
+            <div style="font-size:var(--fs-lg);font-weight:700;color:var(--tx1);">Maya, 21</div>
+            <div style="font-size:var(--fs-xs);color:var(--tx2);">📍 180m away · UNSW · Quiet &amp; chill</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;"><span class="mtag">🎮 Gaming</span><span class="mtag">📚 Reading</span><span class="mtag">UNSW Comp Sci</span></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="hideMatch()" style="flex:1;padding:13px;border-radius:22px;border:1.5px solid var(--bd2);background:transparent;color:var(--tx2);font-size:var(--fs-base);font-weight:700;cursor:pointer;">Pass</button>
+        <button onclick="acceptMatch()" style="flex:2;padding:13px;border-radius:22px;border:none;background:var(--acc);color:#fff;font-size:var(--fs-base);font-weight:700;cursor:pointer;">Let's Go! 🤝</button>
+      </div>
+      <p style="font-size:var(--fs-xs);color:var(--tx3);text-align:center;margin-top:10px;">⚠️ Stay safe — meet in public · Chat expires in 30 mins</p>
+    </div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="screen" id="screen-map">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:15;padding:10px 14px 0;display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;gap:8px;align-items:center;padding-top:8px;">
+      <button onclick="go('main')" style="width:36px;height:36px;border-radius:50%;background:var(--bg1);border:1px solid var(--bd2);font-size:18px;color:var(--tx2);cursor:pointer;flex-shrink:0;">←</button>
+      <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg1);border:1px solid var(--bd2);border-radius:24px;padding:9px 14px;">
+        <span style="font-size:14px;color:var(--tx3);">🔍</span>
+        <span style="font-size:var(--fs-sm);color:var(--tx2);">UNSW Campus, Kensington</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:7px;overflow-x:auto;padding:0 2px 6px;scrollbar-width:thin;scrollbar-color:var(--acc) var(--bg3);" class="leg-scroll">
+      <div class="lpill on" id="leg0" onclick="toggleLeg(0)"><div style="width:8px;height:8px;border-radius:50%;background:var(--acc);flex-shrink:0;"></div>Looking now</div>
+      <div class="lpill" id="leg1" onclick="toggleLeg(1)"><div style="width:8px;height:8px;border-radius:50%;background:#378ADD;flex-shrink:0;"></div>Shared interests</div>
+      <div class="lpill" id="leg3" onclick="toggleLeg(3)"><div style="width:8px;height:8px;border-radius:50%;background:#0F6E56;flex-shrink:0;"></div>♿ Accessible</div>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;position:relative;">
+    <div id="mapContainer" style="display:block;width:100%;flex:1;min-height:400px;"></div>
+    <div style="position:absolute;right:12px;top:42%;transform:translateY(-50%);z-index:10;display:flex;flex-direction:column;gap:6px;">
+      <div class="mapctrl" onclick="zoomMap(1.2)">+</div>
+      <div class="mapctrl" onclick="zoomMap(0.85)">−</div>
+    </div>
+    <div style="position:absolute;right:12px;bottom:180px;z-index:10;width:40px;height:40px;border-radius:50%;background:var(--bg1);border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;" onclick="recenter()">◎</div>
+    <div id="pinPop" class="ppop hidden" style="top:120px;left:55px;">
+      <div style="font-size:var(--fs-base);font-weight:700;color:var(--tx1);margin-bottom:2px;" id="popName">Maya, 21</div>
+      <div style="font-size:var(--fs-xs);color:var(--tx2);margin-bottom:8px;" id="popMeta"></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="popTags"></div>
+      <div id="popA11y" style="display:none;font-size:var(--fs-xs);color:#0F6E56;font-weight:700;margin-bottom:8px;">♿ Accessible venue nearby</div>      <button onclick="showMatch()" style="width:100%;padding:8px;border-radius:14px;border:none;background:var(--acc);color:#fff;font-size:var(--fs-xs);font-weight:700;cursor:pointer;">Connect →</button>
+      <div class="parr"></div>
+    </div>
+    <div style="position:relative;left:0;right:0;z-index:10;background:var(--bg1);border-radius:24px 24px 0 0;border-top:1px solid var(--bd3);padding:14px 18px 28px;margin-top:auto;">
+      <div style="width:36px;height:4px;background:var(--bd2);border-radius:2px;margin:0 auto 12px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <div style="font-size:var(--fs-lg);font-weight:700;color:var(--tx1);"><span id="mapCount">7</span> people nearby</div>
+          <div style="font-size:var(--fs-xs);color:var(--tx2);">Within your radius · UNSW area</div>
+        </div>
+        <div style="background:#EAF3DE;color:#085041;font-size:var(--fs-xs);font-weight:700;padding:4px 10px;border-radius:12px;">📍 Location ON</div>
+      </div>
+      <div class="sharebar">
+        <div><div style="font-size:var(--fs-sm);color:var(--tx1);font-weight:600;">Share my location</div><div style="font-size:var(--fs-xs);color:var(--tx3);">Only visible to matches · Auto-off in 30 min</div></div>
+        <div class="tsw" id="locTog" onclick="toggleLoc()"><div class="tknob"></div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span style="font-size:var(--fs-xs);color:var(--tx2);min-width:38px;">Radius</span>
+        <input type="range" min="100" max="2000" step="50" value="500" id="radSlider" oninput="updateRadius(this.value)" style="flex:1;" aria-label="Search radius">
+        <span style="font-size:var(--fs-sm);font-weight:700;color:var(--acc);min-width:42px;text-align:right;" id="radVal">500m</span>
+      </div>
+      <button onclick="showMatch()" style="width:100%;padding:13px;border-radius:26px;border:none;background:var(--acc);color:#fff;font-size:var(--fs-base);font-weight:700;cursor:pointer;">Find a match now ⚡</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div class="screen" id="screen-chat">
+  <div class="sbar"><span>9:41</span><span>●●●</span></div>
+  <div style="padding:12px 18px 10px;border-bottom:1px solid var(--bd3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="go('main')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx2);">←</button>
+        <div style="width:36px;height:36px;border-radius:50%;background:#FAC775;color:#633806;font-weight:700;font-size:var(--fs-sm);display:flex;align-items:center;justify-content:center;">MK</div>
+        <div>
+          <div style="font-size:var(--fs-base);font-weight:700;color:var(--tx1);">Maya</div>
+          <div style="font-size:var(--fs-xs);color:var(--tx3);">Identity confirmed · 180m away</div>
+        </div>
+      </div>
+      <div class="tbadge" id="chatTimer" aria-live="polite">29:45</div>
+    </div>
+    <div style="height:3px;background:var(--bg3);border-radius:2px;"><div id="expFill" style="height:100%;background:var(--acc);border-radius:2px;width:99%;transition:width 1s linear;"></div></div>
+  </div>
+  <div class="chatarea" id="chatMsgs" aria-live="polite">
+    <div class="mrow theirs">
+      <div style="width:28px;height:28px;border-radius:50%;background:#FAC775;color:#633806;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">MK</div>
+      <div><div class="mtime">9:41</div><div class="bbl">Hey! Saw you're also into gaming 🎮 — wanna grab a coffee first?</div></div>
+    </div>
+  </div>
+  <div style="padding:0 16px 8px;">
+    <div style="font-size:var(--fs-xs);color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Ice-breakers</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
+      <div class="ichip" onclick="sendIce(this)">Meet at nearby café?</div>
+      <div class="ichip" onclick="sendIce(this)">Walk to the park?</div>
+      <div class="ichip" onclick="sendIce(this)">What are you playing?</div>
+    </div>
+  </div>
+  <div style="padding:8px 16px 10px;display:flex;gap:10px;align-items:center;border-top:1px solid var(--bd3);">
+    <button onclick="go('report')" style="font-size:var(--fs-xs);color:var(--tx3);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;">⚑ Report</button>
+    <input id="chatInput" class="tinput" type="text" placeholder="Message..." style="flex:1;margin:0;padding:10px 14px;" onkeydown="if(event.key==='Enter')sendMsg()" onfocus="showKbd()" aria-label="Type a message"/>
+    <button class="kbd-toggle" id="kbdToggleBtn" onclick="toggleKbd()" aria-label="Toggle keyboard">⌨️</button>
+    <button onclick="sendMsg()" style="width:40px;height:40px;border-radius:50%;border:none;background:var(--acc);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Send">↑</button>
+  </div>
+  <div class="kbd-wrap" id="kbdWrap">
+    <div class="kbd-row">
+      <div class="kbd-key" onclick="kbdTap('q')">q</div><div class="kbd-key" onclick="kbdTap('w')">w</div><div class="kbd-key" onclick="kbdTap('e')">e</div><div class="kbd-key" onclick="kbdTap('r')">r</div><div class="kbd-key" onclick="kbdTap('t')">t</div><div class="kbd-key" onclick="kbdTap('y')">y</div><div class="kbd-key" onclick="kbdTap('u')">u</div><div class="kbd-key" onclick="kbdTap('i')">i</div><div class="kbd-key" onclick="kbdTap('o')">o</div><div class="kbd-key" onclick="kbdTap('p')">p</div>
+    </div>
+    <div class="kbd-row">
+      <div style="flex:.5;"></div>
+      <div class="kbd-key" onclick="kbdTap('a')">a</div><div class="kbd-key" onclick="kbdTap('s')">s</div><div class="kbd-key" onclick="kbdTap('d')">d</div><div class="kbd-key" onclick="kbdTap('f')">f</div><div class="kbd-key" onclick="kbdTap('g')">g</div><div class="kbd-key" onclick="kbdTap('h')">h</div><div class="kbd-key" onclick="kbdTap('j')">j</div><div class="kbd-key" onclick="kbdTap('k')">k</div><div class="kbd-key" onclick="kbdTap('l')">l</div>
+      <div style="flex:.5;"></div>
+    </div>
+    <div class="kbd-row">
+      <div class="kbd-key wide" onclick="toggleShift()"><span id="shiftLbl">⇧</span></div>
+      <div class="kbd-key" onclick="kbdTap('z')">z</div><div class="kbd-key" onclick="kbdTap('x')">x</div><div class="kbd-key" onclick="kbdTap('c')">c</div><div class="kbd-key" onclick="kbdTap('v')">v</div><div class="kbd-key" onclick="kbdTap('b')">b</div><div class="kbd-key" onclick="kbdTap('n')">n</div><div class="kbd-key" onclick="kbdTap('m')">m</div>
+      <div class="kbd-key wide" onclick="kbdBackspace()">⌫</div>
+    </div>
+    <div class="kbd-row">
+      <div class="kbd-key wide" onclick="kbdTap('123')" style="font-size:12px;">123</div>
+      <div class="kbd-key" onclick="kbdTap(',')">，</div>
+      <div class="kbd-key space" onclick="kbdTap(' ')">space</div>
+      <div class="kbd-key" onclick="kbdTap('.')">.</div>
+      <div class="kbd-key send-k" onclick="sendMsg()">send</div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCESSIBILITY SETTINGS SCREEN -->
+<div class="screen" id="screen-a11y">
+  <div class="sbar"><span>9:41</span><span>●●●</span></div>
+  <div style="padding:14px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--bd3);">
+    <button class="back-btn" onclick="go('main')" style="margin:0;font-size:20px;">←</button>
+    <div style="font-size:var(--fs-xl);font-weight:700;color:var(--tx1);">Accessibility</div>
+  </div>
+  <div style="padding:20px 20px 32px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:20px;">
+
+    <!-- Display group -->
+    <div>
+      <div style="font-size:var(--fs-xs);font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;padding-left:4px;">Display</div>
+      <div style="background:var(--bg2);border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--bd3);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <div>
+            <div style="font-size:var(--fs-sm);font-weight:600;color:var(--tx1);">High Contrast</div>
+            <div style="font-size:var(--fs-xs);color:var(--tx3);margin-top:1px;">Stronger colours for easier reading</div>
+          </div>
+          <div class="tsw off" id="hcSw" onclick="toggleHC()"><div class="tknob"></div></div>
+        </div>
+        <div style="height:1px;background:var(--bd3);margin:0 16px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <div>
+            <div style="font-size:var(--fs-sm);font-weight:600;color:var(--tx1);">Large Text</div>
+            <div style="font-size:var(--fs-xs);color:var(--tx3);margin-top:1px;">Increases text size throughout</div>
+          </div>
+          <div class="tsw off" id="btSw" onclick="toggleBT()"><div class="tknob"></div></div>
+        </div>
+        <div style="height:1px;background:var(--bd3);margin:0 16px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <div>
+            <div style="font-size:var(--fs-sm);font-weight:600;color:var(--tx1);">Reduce Motion</div>
+            <div style="font-size:var(--fs-xs);color:var(--tx3);margin-top:1px;">Disables pulsing &amp; animations</div>
+          </div>
+          <div class="tsw off" id="rmSw" onclick="toggleRM()"><div class="tknob"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map group -->
+    <div>
+      <div style="font-size:var(--fs-xs);font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;padding-left:4px;">Map &amp; Navigation</div>
+      <div style="background:var(--bg2);border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--bd3);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <div>
+            <div style="font-size:var(--fs-sm);font-weight:600;color:var(--tx1);">♿ Accessible Venues Only</div>
+            <div style="font-size:var(--fs-xs);color:var(--tx3);margin-top:1px;">Show only wheelchair-friendly locations</div>
+          </div>
+          <div class="tsw off" id="wcSw" onclick="toggleWC()"><div class="tknob"></div></div>
+        </div>
+        <div style="height:1px;background:var(--bd3);margin:0 16px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <div>
+            <div style="font-size:var(--fs-sm);font-weight:600;color:var(--tx1);">Location Auto-Off</div>
+            <div style="font-size:var(--fs-xs);color:var(--tx3);margin-top:1px;">Turns off automatically</div>
+          </div>
+          <div style="font-size:var(--fs-xs);font-weight:700;color:var(--acc);background:var(--acc-lt);padding:4px 10px;border-radius:12px;">30 min</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language group -->
+    <div>
+      <div style="font-size:var(--fs-xs);font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;padding-left:4px;">Language &amp; Input</div>
+      <div style="background:var(--bg2);border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--bd3);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <div style="font-size:var(--fs-sm);font-weight:600;color:var(--tx1);">Language</div>
+          <div style="font-size:var(--fs-sm);color:var(--tx2);">English ›</div>
+        </div>
+        <div style="height:1px;background:var(--bd3);margin:0 16px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <div>
+            <div style="font-size:var(--fs-sm);font-weight:600;color:var(--tx1);">Screen Reader</div>
+            <div style="font-size:var(--fs-xs);color:var(--tx3);margin-top:1px;">VoiceOver &amp; TalkBack optimised</div>
+          </div>
+          <div style="background:#EAF3DE;color:#27500A;font-size:var(--fs-xs);font-weight:700;padding:4px 10px;border-radius:12px;">Active</div>
+        </div>
+        <div style="height:1px;background:var(--bd3);margin:0 16px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+          <div>
+            <div style="font-size:var(--fs-sm);font-weight:600;color:var(--tx1);">Auto-translate</div>
+            <div style="font-size:var(--fs-xs);color:var(--tx3);margin-top:1px;">Translate messages automatically</div>
+          </div>
+          <div class="tsw off"><div class="tknob"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EXPIRED -->
+<div class="screen" id="screen-expired">
+  <div class="sbar"><span>10:11</span><span>●●●</span></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 2rem;gap:14px;text-align:center;">
+    <div style="font-size:52px;">⏱️</div>
+    <div style="font-size:var(--fs-xxl);font-weight:700;color:var(--tx1);letter-spacing:-.3px;">Chat Expired</div>
+    <div style="font-size:var(--fs-sm);color:var(--tx2);line-height:1.55;max-width:260px;">Your 30-minute chat with Maya has ended. No messages are saved. Hopefully you made a new friend!</div>
+    <div style="font-size:var(--fs-sm);color:var(--tx2);font-weight:600;margin-top:6px;">How was it?</div>
+    <div style="display:flex;gap:10px;width:100%;">
+      <button style="flex:1;padding:12px;border-radius:16px;border:1.5px solid var(--bd2);background:var(--bg2);font-size:var(--fs-sm);cursor:pointer;color:var(--tx2);">👍 Great</button>
+      <button style="flex:1;padding:12px;border-radius:16px;border:1.5px solid var(--bd2);background:var(--bg2);font-size:var(--fs-sm);cursor:pointer;color:var(--tx2);">👎 Not great</button>
+    </div>
+    <button class="btn-pri" style="margin-top:8px;" onclick="go('main')">Look for someone new</button>
+    <button class="btn-sec" onclick="go('splash')">Go home</button>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div class="screen" id="screen-report">
+  <div class="sbar"><span>9:55</span><span>●●●</span></div>
+  <div style="padding:18px 20px 0;display:flex;align-items:center;gap:10px;">
+    <button onclick="go('chat')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx2);">←</button>
+    <div style="width:44px;height:44px;border-radius:50%;background:#FCEBEB;display:flex;align-items:center;justify-content:center;font-size:20px;">🚩</div>
+    <div>
+      <div style="font-size:var(--fs-lg);font-weight:700;color:var(--tx1);">Report Maya</div>
+      <div style="font-size:var(--fs-xs);color:var(--tx2);">Select a reason. Your report is anonymous.</div>
+    </div>
+  </div>
+  <div style="padding:18px 20px;flex:1;">
+    <div class="ritem" onclick="selR(this)"><span style="font-size:16px;">💬</span>Rude or offensive messages</div>
+    <div class="ritem" onclick="selR(this)"><span style="font-size:16px;">👤</span>Fake or unverified identity</div>
+    <div class="ritem" onclick="selR(this)"><span style="font-size:16px;">❌</span>Didn't show up to meetup</div>
+    <div class="ritem" onclick="selR(this)"><span style="font-size:16px;">⚠️</span>Made me feel unsafe</div>
+    <div class="ritem" onclick="selR(this)"><span style="font-size:16px;">🚫</span>Inappropriate content</div>
+    <div class="ritem" onclick="selR(this)"><span style="font-size:16px;">📞</span>Asked for personal contact info</div>
+  </div>
+  <div style="padding:0 20px 32px;">
+    <button id="rBtn" onclick="submitReport()" style="width:100%;padding:14px;border-radius:30px;border:none;background:#E24B4A;color:#fff;font-size:var(--fs-base);font-weight:700;cursor:pointer;opacity:.4;">Submit Report</button>
+  </div>
+</div>
+
+<!-- REPORT SUBMITTED -->
+<div class="screen" id="screen-reported">
+  <div class="sbar"><span>9:56</span><span>●●●</span></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 2rem;gap:16px;text-align:center;">
+    <div style="width:72px;height:72px;border-radius:50%;background:#EAF3DE;display:flex;align-items:center;justify-content:center;font-size:32px;">✅</div>
+    <div style="font-size:var(--fs-xxl);font-weight:700;color:var(--tx1);letter-spacing:-.3px;">Report Submitted</div>
+    <div style="font-size:var(--fs-sm);color:var(--tx2);line-height:1.55;max-width:260px;">Thanks for helping keep the community safe. Our team will review within 24 hours.</div>
+    <div style="background:var(--bg2);border-radius:var(--r-lg);padding:14px 18px;width:100%;text-align:left;border:1px solid var(--bd3);">
+      <div style="font-size:var(--fs-xs);color:var(--tx3);margin-bottom:4px;">REPORT REASON</div>
+      <div style="font-size:var(--fs-sm);color:var(--tx1);font-weight:600;" id="rptReason">—</div>
+    </div>
+    <div style="font-size:var(--fs-xs);color:var(--tx3);line-height:1.55;max-width:260px;">Maya's account has been flagged. You won't be matched again.</div>
+    <button class="btn-pri" style="margin-top:8px;" onclick="go('main')">Back to Connect</button>
+  </div>
+</div>
+
+</div><!-- /phone-frame -->
+</div><!-- /outer -->
+
+<script>
+let isConn=false,timerInt=null,chatInt=null;
+let chatSecs=29*60+45,lookSecs=28*60+47;
+let zoom=1,panX=0,panY=0,isDrag=false,lx2=0,ly2=0;
+let radM=500,locOn=true,activePin=null,animFr=null;
+let legF=[true,false,false,false];
+let selReason='',convStep=0;
+let hcOn=false,btOn=false,rmOn=false,wcOn=false;
+
+const PEOPLE=[
+  {id:0,ini:'MK',name:'Maya, 21',meta:'📍 180m · UNSW · Quiet & chill',interests:['🎮 Gaming','📚 Reading'],col:'#FAC775',tc:'#633806',lat:-33.9172,lng:151.2308,shared:true,accessible:true},
+  {id:1,ini:'JL',name:'James, 23',meta:'📍 320m · UNSW · Comp Sci',interests:['☕ Coffee','🎵 Music'],col:'#9FE1CB',tc:'#085041',lat:-33.9175,lng:151.2320,shared:false,accessible:false},
+  {id:2,ini:'RP',name:'Riya, 20',meta:'📍 410m · UNSW · Design',interests:['📚 Reading','🎨 Art'],col:'#CECBF6',tc:'#3C3489',lat:-33.9180,lng:151.2310,shared:true,accessible:true},
+  {id:3,ini:'SA',name:'Sam, 22',meta:'📍 290m · Campus · Engineering',interests:['🎮 Gaming','🍜 Foodie'],col:'#F5C4B3',tc:'#712B13',lat:-33.9168,lng:151.2318,shared:true,accessible:false},
+  {id:4,ini:'TN',name:'Tanya, 21',meta:'📍 480m · UNSW · Commerce',interests:['🏃 Sport','☕ Coffee'],col:'#B5D4F4',tc:'#0C447C',lat:-33.9182,lng:151.2305,shared:false,accessible:true},
+  {id:5,ini:'LW',name:'Leo, 24',meta:'📍 390m · Campus · Arts',interests:['🎵 Music','📸 Photography'],col:'#C0DD97',tc:'#27500A',lat:-33.9170,lng:151.2325,shared:false,accessible:false},
+  {id:6,ini:'PK',name:'Priya, 22',meta:'📍 445m · UNSW · Law',interests:['🧩 Board Games','📚 Reading'],col:'#FAC775',tc:'#633806',lat:-33.9185,lng:151.2315,shared:true,accessible:true},
+];
+const VENUES=[];
+
+function go(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  const keys=['splash','ob1','ob2','main','map',null,'chat','a11y','expired','report'];
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{b.classList.remove('active-nav');if(keys[i]===name)b.classList.add('active-nav');});
+  if(name==='map'){setTimeout(()=>{setupCanvas();startAnim();},80);}else{cancelAnimationFrame(animFr);}
+  if(name==='chat')startChatTimer();else stopChatTimer();
+}
+
+function showMatch(){
+  go('main');
+  document.getElementById('matchOv').classList.add('show');
+  document.querySelectorAll('.nav-btn')[5].classList.add('active-nav');
+}
+function hideMatch(){document.getElementById('matchOv').classList.remove('show');}
+function acceptMatch(){hideMatch();resetChat();go('chat');}
+
+function toggleConnect(){
+  isConn=!isConn;
+  const tog=document.getElementById('bigTog');
+  if(isConn){
+    tog.classList.add('on');tog.setAttribute('aria-checked','true');
+    document.getElementById('tLabel').textContent='Looking for someone...';
+    document.getElementById('tIcon').textContent='✓';
+    document.getElementById('tSub').style.display='none';
+    document.getElementById('lookTimer').style.display='block';
+    startLookTimer();setTimeout(()=>showMatch(),4000);
+  }else{
+    tog.classList.remove('on');tog.setAttribute('aria-checked','false');
+    document.getElementById('tLabel').textContent='I want to connect';
+    document.getElementById('tIcon').textContent='⚡';
+    document.getElementById('tSub').style.display='block';
+    document.getElementById('lookTimer').style.display='none';
+    stopLookTimer();
+  }
+}
+function startLookTimer(){stopLookTimer();timerInt=setInterval(()=>{lookSecs=Math.max(0,lookSecs-1);const m=Math.floor(lookSecs/60),s=lookSecs%60;document.getElementById('lookTimer').textContent='Looking... '+m+':'+String(s).padStart(2,'0')+' remaining';},1000);}
+function stopLookTimer(){if(timerInt){clearInterval(timerInt);timerInt=null;}}
+
+function resetChat(){
+  convStep=0;chatSecs=29*60+45;
+  document.getElementById('chatMsgs').innerHTML=`<div class="mrow theirs"><div style="width:28px;height:28px;border-radius:50%;background:#FAC775;color:#633806;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">MK</div><div><div class="mtime">9:41</div><div class="bbl">Hey! Saw you're also into gaming 🎮 — wanna grab a coffee first?</div></div></div>`;
+}
+function startChatTimer(){
+  stopChatTimer();
+  chatInt=setInterval(()=>{
+    chatSecs=Math.max(0,chatSecs-1);
+    const m=Math.floor(chatSecs/60),s=chatSecs%60;
+    const el=document.getElementById('chatTimer');const fill=document.getElementById('expFill');if(!el)return;
+    el.textContent=m+':'+String(s).padStart(2,'0');
+    const pct=(chatSecs/(30*60))*100;fill.style.width=pct+'%';
+    if(pct<20){el.classList.add('urg');fill.style.background='#E24B4A';}
+    if(chatSecs===0){stopChatTimer();go('expired');}
+  },1000);
+}
+function stopChatTimer(){if(chatInt){clearInterval(chatInt);chatInt=null;}}
+const REPLIES=[{t:'yes',r:"Perfect, see you in 10 ☕"},{t:'café',r:"Perfect, see you in 10 ☕"},{t:'cafe',r:"Perfect, see you in 10 ☕"},{t:'coffee',r:"Perfect, see you in 10 ☕"},{t:'sure',r:"Awesome! See you there 😊"},{t:'meet',r:"Perfect, see you in 10 ☕"},{t:'library',r:"Perfect, see you in 10 ☕"}];
+function sendMsg(){
+  const inp=document.getElementById('chatInput');const txt=inp.value.trim();if(!txt)return;
+  addMsg(txt,'mine');inp.value='';
+  const m=REPLIES.find(r=>txt.toLowerCase().includes(r.t));
+  if(m&&convStep===0){convStep=1;setTimeout(()=>{showTyping();setTimeout(()=>{removeTyping();addMsg(m.r,'theirs');},1200);},600);}
+}
+function sendIce(el){addMsg(el.textContent,'mine');if(convStep===0){convStep=1;setTimeout(()=>{showTyping();setTimeout(()=>{removeTyping();addMsg("Perfect, see you in 10 ☕",'theirs');},1200);},600);}}
+function showTyping(){
+  const c=document.getElementById('chatMsgs');const row=document.createElement('div');row.className='mrow theirs';row.id='typRow';
+  row.innerHTML=`<div style="width:28px;height:28px;border-radius:50%;background:#FAC775;color:#633806;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">MK</div><div><div class="mtime">now</div><div class="bbl" style="padding:12px 16px;"><span style="display:inline-flex;gap:4px;align-items:center;"><span style="width:6px;height:6px;border-radius:50%;background:#aaa;animation:dot 1.2s infinite .0s;display:inline-block;"></span><span style="width:6px;height:6px;border-radius:50%;background:#aaa;animation:dot 1.2s infinite .2s;display:inline-block;"></span><span style="width:6px;height:6px;border-radius:50%;background:#aaa;animation:dot 1.2s infinite .4s;display:inline-block;"></span></span></div></div>`;
+  c.appendChild(row);
+  if(!document.getElementById('dotSty')){const s=document.createElement('style');s.id='dotSty';s.textContent='@keyframes dot{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}';document.head.appendChild(s);}
+  c.scrollTop=c.scrollHeight;
+}
+function removeTyping(){const t=document.getElementById('typRow');if(t)t.remove();}
+function addMsg(txt,type){
+  const c=document.getElementById('chatMsgs');const now=new Date();const time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  const row=document.createElement('div');row.className='mrow '+type;
+  if(type==='mine')row.innerHTML=`<div><div class="mtime" style="text-align:right;">${time}</div><div class="bbl">${txt}</div></div>`;
+  else row.innerHTML=`<div style="width:28px;height:28px;border-radius:50%;background:#FAC775;color:#633806;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">MK</div><div><div class="mtime">${time}</div><div class="bbl">${txt}</div></div>`;
+  c.appendChild(row);c.scrollTop=c.scrollHeight;
+}
+
+function selR(el){document.querySelectorAll('.ritem').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');selReason=el.textContent.trim();document.getElementById('rBtn').style.opacity='1';}
+function submitReport(){if(!selReason)return;document.getElementById('rptReason').textContent=selReason;selReason='';document.querySelectorAll('.ritem').forEach(r=>r.classList.remove('sel'));document.getElementById('rBtn').style.opacity='.4';go('reported');}
+function doVerify(box){document.getElementById('vi1').textContent='✅';document.getElementById('vt1').textContent='Identity verified';document.getElementById('vs1').textContent='Age 21 · Verified';box.style.borderStyle='solid';box.style.borderColor='#3B6D11';box.style.background='#EAF3DE';}
+function doSelfie(box){document.getElementById('vi2').textContent='✅';document.getElementById('vt2').textContent='Selfie verified';document.getElementById('vs2').textContent='Photo match confirmed';box.style.borderStyle='solid';box.style.borderColor='#3B6D11';box.style.background='#EAF3DE';}
+
+/* MAP */
+function toggleLeg(i){legF[i]=!legF[i];document.getElementById('leg'+i).classList.toggle('on',legF[i]);drawMap();}
+function isPinVis(p){if(legF[3]&&!p.accessible)return false;if(legF[1]&&!p.shared)return false;return true;}
+function updateRadius(v){
+  radM=parseInt(v);document.getElementById('radVal').textContent=radM>=1000?(radM/1000).toFixed(1)+'km':radM+'m';
+  const cnt=PEOPLE.filter(p=>Math.sqrt((p.rx*450)**2+(p.ry*450)**2)<=(radM/500)*200).length;
+  document.getElementById('mapCount').textContent=cnt;drawMap();
+}
+function toggleLoc(){locOn=!locOn;document.getElementById('locTog').classList.toggle('off',!locOn);drawMap();}
+function zoomMap(f){
+  if(window.friendableMap){
+    const currentZoom = window.friendableMap.getZoom();
+    window.friendableMap.setZoom(Math.min(20, Math.max(10, currentZoom + (f > 1 ? 1 : -1))));
+  }
+}
+function recenter(){
+  if(window.friendableMap && window.mapUserLat && window.mapUserLng){
+    window.friendableMap.setCenter({ lat: window.mapUserLat, lng: window.mapUserLng });
+    window.friendableMap.setZoom(16);
+  }
+}
+
+function drawMap(){
+  const mapContainer = document.getElementById('mapContainer');
+  if(!mapContainer) return;
+  
+  // Create embedded Google Maps iframe (no API key needed)
+  if(!window.mapIframeCreated){
+    window.mapIframeCreated = true;
+    
+    // UNSW location coordinates
+    const lat = -33.9173;
+    const lng = 151.2313;
+    const zoom = 16;
+    
+    // Create iframe with embedded Google Maps
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:100%;border:none;';
+    iframe.src = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3312.8926373291173!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6b0d47fb5c8e8e8d%3A0x500ef6143a29917!2sUNSW%20Sydney!5e0!3m2!1sen!2sau!4v1234567890`;
+    iframe.allowFullscreen = true;
+    iframe.loading = 'lazy';
+    iframe.referrerPolicy = 'no-referrer-when-downgrade';
+    
+    mapContainer.innerHTML = '';
+    mapContainer.appendChild(iframe);
+  }
+  
+  // Count people in radius
+  const cnt = PEOPLE.filter(p => {
+    const dist = Math.sqrt((p.rx*450)**2 + (p.ry*450)**2);
+    return dist <= (radM/500)*200;
+  }).length;
+  document.getElementById('mapCount').textContent = cnt;
+}
+
+function startAnim(){cancelAnimationFrame(animFr);function loop(){if(document.getElementById('screen-map').classList.contains('active')){drawMap();animFr=requestAnimationFrame(loop);}}loop();}
+function showPopup(p){
+  const pop=document.getElementById('pinPop');
+  document.getElementById('popName').textContent=p.name;document.getElementById('popMeta').textContent=p.meta;
+  document.getElementById('popTags').innerHTML=p.interests.map(t=>`<span style="font-size:10px;padding:3px 7px;border-radius:10px;background:var(--acc-lt);color:var(--acc-dk);">${t}</span>`).join('');
+  document.getElementById('popA11y').style.display=p.accessible?'block':'none';
+  const cv=document.getElementById('mapCanvas');const W=cv.offsetWidth;
+  let lx=p._px-96;if(lx<6)lx=6;if(lx+192>W-6)lx=W-198;
+  const ly=p._py-p._r-140;pop.style.left=lx+'px';pop.style.top=Math.max(8,ly)+'px';pop.classList.remove('hidden');activePin=p.id;
+}
+function hidePopup(){document.getElementById('pinPop').classList.add('hidden');activePin=null;}
+function handleTap(x,y){for(const p of PEOPLE){if(!p._px||!isPinVis(p))continue;const dx=x-p._px,dy=y-p._py;if(Math.sqrt(dx*dx+dy*dy)<(p._r||20)+6){if(activePin===p.id){hidePopup();return;}showPopup(p);return;}}hidePopup();}
+function setupCanvas(){
+  // Google Maps handles its own interaction, no canvas setup needed
+  // This function is kept for compatibility but does nothing
+  return true;
+}
+
+/* CUSTOM CHIPS */
+function addCustomChip(type){
+  var inputId = type==='interest' ? 'customInterest' : 'customVibe';
+  var groupId = type==='interest' ? 'interestChips'  : 'vibeChips';
+  var inp = document.getElementById(inputId);
+  var val = inp.value.trim();
+  if(!val) return;
+  var group = document.getElementById(groupId);
+  var existing = Array.from(group.querySelectorAll('.chip')).map(function(c){return c.textContent.replace('×','').trim().toLowerCase();});
+  if(existing.indexOf(val.toLowerCase())>-1){inp.value='';return;}
+  var chip = document.createElement('div');
+  chip.className='chip sel';
+  chip.style.position='relative';
+  chip.style.paddingRight='26px';
+  chip.innerHTML = val;
+  chip.onclick = function(){ chip.classList.toggle('sel'); };
+  var rm = document.createElement('span');
+  rm.textContent='×';
+  rm.style.cssText='position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:14px;line-height:1;cursor:pointer;opacity:.7;font-weight:400;';
+  rm.onclick=function(e){e.stopPropagation();chip.remove();};
+  chip.appendChild(rm);
+  group.appendChild(chip);
+  inp.value='';
+  inp.focus();
+}
+
+/* KEYBOARD */
+let kbdVisible=false,shiftOn=false;
+function showKbd(){/* don't auto-show — user toggles */}
+function toggleKbd(){
+  kbdVisible=!kbdVisible;
+  const w=document.getElementById('kbdWrap');
+  const btn=document.getElementById('kbdToggleBtn');
+  w.classList.toggle('show',kbdVisible);
+  btn.style.background=kbdVisible?'var(--acc)':'var(--bg2)';
+  btn.style.color=kbdVisible?'#fff':'var(--tx2)';
+  btn.style.borderColor=kbdVisible?'var(--acc)':'var(--bd2)';
+  if(kbdVisible)document.getElementById('chatInput').focus();
+}
+function kbdTap(ch){
+  if(ch==='123')return;
+  const inp=document.getElementById('chatInput');
+  const c=shiftOn?ch.toUpperCase():ch;
+  inp.value+=c;
+  if(shiftOn){shiftOn=false;document.getElementById('shiftLbl').textContent='⇧';document.querySelectorAll('.kbd-key:not(.wide):not(.space):not(.send-k)').forEach(k=>{if(k.textContent.length===1)k.textContent=k.textContent.toLowerCase();});}
+  inp.focus();
+}
+function kbdBackspace(){
+  const inp=document.getElementById('chatInput');
+  inp.value=inp.value.slice(0,-1);inp.focus();
+}
+function toggleShift(){
+  shiftOn=!shiftOn;
+  const lbl=document.getElementById('shiftLbl');lbl.textContent=shiftOn?'⇧':'⇧';
+  document.querySelectorAll('.kbd-key:not(.wide):not(.space):not(.send-k)').forEach(k=>{
+    if(k.textContent.length===1)k.textContent=shiftOn?k.textContent.toUpperCase():k.textContent.toLowerCase();
+  });
+  document.querySelectorAll('.kbd-key.wide')[0].style.background=shiftOn?'var(--acc)':'var(--bg2)';
+  document.querySelectorAll('.kbd-key.wide')[0].style.color=shiftOn?'#fff':'var(--tx1)';
+}
+
+function syncToggle(swId,state){const sw=document.getElementById(swId);if(sw)sw.classList.toggle('off',!state);}
+function toggleHC(){
+  hcOn=!hcOn;document.body.classList.toggle('hc',hcOn);
+  const btn=document.getElementById('hcBtn');btn.classList.toggle('on',hcOn);btn.setAttribute('aria-pressed',String(hcOn));
+  syncToggle('hcSw',hcOn);drawMap();
+}
+function toggleBT(){
+  btOn=!btOn;document.body.classList.toggle('bigtxt',btOn);
+  const btn=document.getElementById('btBtn');btn.classList.toggle('on',btOn);btn.setAttribute('aria-pressed',String(btOn));
+  syncToggle('btSw',btOn);
+}
+function toggleRM(){
+  rmOn=!rmOn;syncToggle('rmSw',rmOn);
+  document.querySelectorAll('.tpulse').forEach(el=>el.style.animationPlayState=rmOn?'paused':'running');
+  if(!rmOn&&document.getElementById('screen-map').classList.contains('active'))startAnim();
+}
+function toggleWC(){
+  wcOn=!wcOn;syncToggle('wcSw',wcOn);
+  legF[3]=wcOn;document.getElementById('leg3').classList.toggle('on',wcOn);drawMap();
+}
+function setSize(sz){
+  const fr=document.getElementById('phoneFrame');
+  fr.classList.remove('sz-se','sz-pro');if(sz==='se')fr.classList.add('sz-se');else if(sz==='pro')fr.classList.add('sz-pro');
+  document.querySelectorAll('.sz-pill').forEach((b,i)=>{b.classList.remove('active-sz');if(['se','14','pro'][i]===sz)b.classList.add('active-sz');});
+  if(document.getElementById('screen-map').classList.contains('active'))setTimeout(drawMap,100);
+}
+
+
+/* ── SPLASH FLOATING EMOJIS ── */
+(function(){
+  var cv, ctx, W, H, particles, animId, active;
+  var EMOJIS = ['☕','🎮','🚶','📚','🎨','🎵','🥾','🍜','📸','🧩','🏃','⚡','🌿','🎲','🏔️'];
+  var COUNT = 18;
+  function rand(a,b){return a+Math.random()*(b-a);}
+  function makeParticle(){
+    var size = rand(18,30);
+    var speed = rand(0.5,1.4);
+    var angle = rand(0, Math.PI*2);
+    return {
+      x: rand(size, W-size), y: rand(size, H-size),
+      vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, nat: speed,
+      size: size,
+      emoji: EMOJIS[Math.floor(Math.random()*EMOJIS.length)],
+      opacity: rand(0.45, 0.85),
+      spin: rand(-0.012, 0.012),
+      angle: rand(0, Math.PI*2)
+    };
+  }
+  function initSplash(){
+    cv = document.getElementById('splashCanvas');
+    if(!cv) return;
+    var parent = cv.parentElement;
+    W = cv.width  = parent.offsetWidth  || 360;
+    H = cv.height = parent.offsetHeight || 520;
+    ctx = cv.getContext('2d');
+    particles = [];
+    for(var i=0;i<COUNT;i++) particles.push(makeParticle());
+    active = true;
+    var mouse = {x:-999, y:-999};
+    cv.onmousemove = function(e){var r=cv.getBoundingClientRect();mouse.x=(e.clientX-r.left)*(W/r.width);mouse.y=(e.clientY-r.top)*(H/r.height);};
+    cv.onmouseleave = function(){mouse.x=-999;mouse.y=-999;};
+    cv.ontouchmove  = function(e){var r=cv.getBoundingClientRect(),t=e.touches[0];mouse.x=(t.clientX-r.left)*(W/r.width);mouse.y=(t.clientY-r.top)*(H/r.height);e.preventDefault();};
+    cv._mouse = mouse;
+    cancelAnimationFrame(animId);
+    loop();
+  }
+  function loop(){
+    if(!active) return;
+    ctx.clearRect(0,0,W,H);
+    var mouse = cv._mouse || {x:-999,y:-999};
+    particles.forEach(function(p){
+      // mouse repulsion
+      var dx=p.x-mouse.x, dy=p.y-mouse.y, dist=Math.sqrt(dx*dx+dy*dy);
+      var REPEL=90;
+      if(dist<REPEL && dist>1){
+        var f=(REPEL-dist)/REPEL*0.55;
+        p.vx+=dx/dist*f; p.vy+=dy/dist*f;
+        // clamp speed so repulsion doesn't send them flying
+        var spd=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+        if(spd>3){p.vx=p.vx/spd*3;p.vy=p.vy/spd*3;}
+      } else {
+        // gentle drift back to natural speed
+        var spd=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+        if(spd>p.nat){p.vx*=0.985;p.vy*=0.985;}
+        if(spd<p.nat*0.6){p.vx*=1.015;p.vy*=1.015;}
+      }
+      p.x += p.vx;
+      p.y += p.vy;
+      p.angle += p.spin;
+      var half = p.size * 0.55;
+      if(p.x < half)    { p.x = half;    p.vx = Math.abs(p.vx); }
+      if(p.x > W-half)  { p.x = W-half;  p.vx = -Math.abs(p.vx); }
+      if(p.y < half)    { p.y = half;     p.vy = Math.abs(p.vy); }
+      if(p.y > H-half)  { p.y = H-half;  p.vy = -Math.abs(p.vy); }
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.font = p.size + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.fillText(p.emoji, 0, 0);
+      ctx.restore();
+    });
+    animId = requestAnimationFrame(loop);
+  }
+  function stopSplash(){ active=false; cancelAnimationFrame(animId); }
+  var _origGo = window.go;
+  window.go = function(name){ _origGo(name); if(name==='splash') setTimeout(initSplash,60); else stopSplash(); };
+  setTimeout(initSplash, 200);
+})();
+</script>
+</body>
+</html>
